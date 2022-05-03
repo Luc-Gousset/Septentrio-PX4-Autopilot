@@ -131,3 +131,44 @@ TEST(RCUpdateTest, ModeSlotButtonAllValues)
 	checkModeSlotButton(31, 6, 1.f, 0); // button 6 pressed but not configured -> manual_control_switches_s::MODE_SLOT_NONE
 	checkModeSlotButton(63, 6, 1.f, 6); // button 6 pressed -> manual_control_switches_s::MODE_SLOT_6
 }
+
+TEST(RCUpdateTest, ModeSlotSwitchAndButton)
+{
+	RCUpdate rc_update;
+
+	// GIVEN: First channel is configured as mode switch
+	rc_update._param_rc_map_fltmode.set(1);
+	EXPECT_EQ(rc_update._param_rc_map_fltmode.get(), 1);
+	// GIVEN: Two more channels are configured as mode buttons
+	rc_update._param_rc_map_fltm_btn.set(6);
+	EXPECT_EQ(rc_update._param_rc_map_fltm_btn.get(), 6);
+
+
+	// GIVEN: First channel (switch) has highest value
+	rc_update._rc.channels[0] = 1.f;
+
+	// WHEN: we update the switches two times to pass the simple outlier protection
+	rc_update.UpdateManualSwitches(0);
+	rc_update.UpdateManualSwitches(0);
+
+	// THEN: we receive the highest mode slot
+	uORB::SubscriptionData<manual_control_switches_s> manual_control_switches_sub{ORB_ID(manual_control_switches)};
+	manual_control_switches_sub.update();
+
+	EXPECT_EQ(manual_control_switches_sub.get().mode_slot, 6); // manual_control_switches_s::MODE_SLOT_6
+
+
+	// GIVEN: Second channel (button) has high value (pressed)
+	rc_update._rc.channels[0] = 1.f;
+
+	// WHEN: we update the switches 4 times
+	rc_update.UpdateManualSwitches(0);
+	rc_update.UpdateManualSwitches(0);
+	rc_update.UpdateManualSwitches(51_ms);
+	rc_update.UpdateManualSwitches(51_ms);
+
+	// THEN: we receive the first mode slot
+	manual_control_switches_sub.update();
+
+	EXPECT_EQ(manual_control_switches_sub.get().mode_slot, 1); // manual_control_switches_s::MODE_SLOT_1
+}

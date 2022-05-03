@@ -579,6 +579,7 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 {
 	manual_control_switches_s switches{};
 	switches.timestamp_sample = timestamp_sample;
+	switches.mode_slot = manual_control_switches_s::MODE_SLOT_NONE;
 
 	// check mode slot (RC_MAP_FLTMODE)
 	if (_param_rc_map_fltmode.get() > 0) {
@@ -598,15 +599,22 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 		// slots. And finally we add half a slot width to ensure that integer rounding
 		// will take us to the correct final index.
 		const float value = _rc.channels[_param_rc_map_fltmode.get() - 1];
+		// printf("value: %.3f\n", (double)value);
+		// printf("num_slots: %.3f\n", (double)num_slots);
+		// printf("slot_width_half: %.3f\n", (double)slot_width_half);
+		// printf("(slot_max - slot_min): %.3f\n", (double)(slot_max - slot_min));
+		// printf("((value - slot_min) * num_slots: %.3f\n", (double)(value - slot_min) * num_slots);
 		switches.mode_slot = (((((value - slot_min) * num_slots) + slot_width_half) / (slot_max - slot_min)) +
 				      slot_width_half) + 1;
+		// printf("switches.mode_slot: %.3f\n", (double)switches.mode_slot);
 
 		if (switches.mode_slot > num_slots) {
 			switches.mode_slot = num_slots;
 		}
 
-	} else if (_param_rc_map_fltm_btn.get() > 0) {
-		switches.mode_slot = manual_control_switches_s::MODE_SLOT_NONE;
+	}
+
+	if (_param_rc_map_fltm_btn.get() > 0) {
 		bool is_consistent_button_press = false;
 
 		for (uint8_t slot = 0; slot < manual_control_switches_s::MODE_SLOT_NUM; slot++) {
