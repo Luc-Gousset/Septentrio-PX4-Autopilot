@@ -36,7 +36,7 @@ _For optimal heading results, the two antennas should be seperated by at least 3
 19.7in or more)_
 
 _For additional configuration of the dual antenna setup, please refer to
-our [Knowledge Base](https://support.septentrio.com/l/858493/2022-04-19/xgrqd) or the [hardware manual](https://web.septentrio.com/l/858493/2022-04-19/xgrql)_ 
+our [Knowledge Base](https://support.septentrio.com/l/858493/2022-04-19/xgrqd) or the [hardware manual](https://web.septentrio.com/l/858493/2022-04-19/xgrql)_
 
 #### Web app
 
@@ -54,28 +54,31 @@ monitor the receiver operation during the job at hand.
 
 ![QGroundControl parameter settings](readme_assets/QGC_param.png)
 
-#### Single antenna
-
-Edit the following parameters in the GPS tab:
-
-- [GPS_1_CONFIG](https://docs.px4.io/master/en/advanced_config/parameter_reference.md#GPS_1_CONFIG): GPS 1
-- [GPS_1_GNSS](https://docs.px4.io/master/en/advanced_config/parameter_reference.md#GPS_1_GNSS): 31
-- [GPS_1_PROTOCOL](https://docs.px4.io/master/en/advanced_config/parameter_reference.md#GPS_1_PROTOCOL): Auto detect (or SBF)
-- [SER_TEL1_BAUD](https://docs.px4.io/master/en/advanced_config/parameter_reference.md#SER_TEL1_BAUD): 115200 8N1
+### Single antenna setup
+Edit the following parameters in the PX4 setup page:
+|                | V1.13           | V1.14|
+| -----------    | -----------     | ----------- |
+| GPS_1_CONFIG   | GPS 1           | GPS 1   |
+| GPS_1_GNSS     | 31              | 31|
+| GPS_1_PROTOCOL | Septentrio (SBF)| Septentrio (SBF) |
+| SER_GPS1_BAUD  | 115200 8N1      |  115200 8N1|
 
 Go to **Tools > Reboot Vehicle**
 
-#### Dual antenna
+### Dual antenna setup
+Edit the following parameters in the PX4 setup page:
+|                | V1.13           | V1.14|
+| -----------    | -----------     | ----------- |
+| GPS_1_CONFIG   | GPS 1           | GPS 1   |
+| GPS_1_GNSS     | 31              | 31|
+| GPS_1_PROTOCOL | Septentrio (SBF)| Septentrio (SBF) |
+| GPS_PITCH_OFFSET | Set accordingly| Set accordingly |
+| GPS_YAW_OFFSET | Set accordingly | Set accordingly|
+| SER_GPS1_BAUD  | 115200 8N1      |  115200 8N1|
+| EKF2_AID_MASK  | Use GPS & GPS fusion|  |
+| EKF2_GPS_CTRL  |       |  Dual antenna heading|
 
-Edit the following parameters in the GPS tab:
 
-- [GPS_1_CONFIG](https://docs.px4.io/master/en/advanced_config/parameter_reference.md#GPS_1_CONFIG): TELEM1
-- [GPS_1_GNSS](https://docs.px4.io/master/en/advanced_config/parameter_reference.md#GPS_1_GNSS): 31
-- [GPS_1_PROTOCOL](https://docs.px4.io/master/en/advanced_config/parameter_reference.md#GPS_1_PROTOCOL): Auto detect (or SBF)
-- [SER_TEL1_BAUD](https://docs.px4.io/master/en/advanced_config/parameter_reference.md#SER_TEL1_BAUD): 115200 8N1
-- [EKF2_AID_MASK](https://docs.px4.io/master/en/advanced_config/parameter_reference.md#EKF2_AID_MASK): Use GPS & GPS yaw fusion (129)
-- [GPS_PITCH_OFFSET](https://docs.px4.io/master/en/advanced_config/parameter_reference.md#GPS_PITCH_OFFSET): set according to your setup
-- [GPS_YAW_OFFSET](https://docs.px4.io/master/en/advanced_config/parameter_reference.md#GPS_YAW_OFFSET): set according to your setup
 
 Go to **Tools > Reboot Vehicle**
 
