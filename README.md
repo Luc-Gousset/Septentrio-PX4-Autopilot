@@ -19,11 +19,11 @@ To get started with PX4 and a Septentrio receiver, follow the [getting started](
 
 ## Building a PX4 based drone, rover, boat or robot
 
-The [PX4 User Guide](https://docs.px4.io/master/en/) explains how to assemble [supported vehicles](https://docs.px4.io/master/en/airframes/airframe_reference.html) and fly drones with PX4.
-See the [forum and chat](https://docs.px4.io/master/en/#support) if you need help!
+The [PX4 User Guide](https://docs.px4.io/main/en/) explains how to assemble [supported vehicles](https://docs.px4.io/main/en/airframes/airframe_reference.html) and fly drones with PX4.
+See the [forum and chat](https://docs.px4.io/main/en/#getting-help) if you need help!
 
 ### Releases
-The releases on this repository are verified by Septentrio. Every Septentrio release ends with "-septentrio". Other releases are verified by PX4 but may not support Septentrio receivers. 
+The releases on this repository are verified by Septentrio. Every Septentrio release ends with "-septentrio". Other releases are verified by PX4 but may not support Septentrio receivers.
 
 On the release page you can download the builds for every default supported boards. Just upload this build to your board using QGroundControl and you are ready to fly!
 
@@ -40,7 +40,9 @@ For other build targets and simulations, visit the [Building PX4 Software](https
 
 ## Supported Hardware
 
-This repository contains code supporting Pixhawk standard boards (best supported, best tested, recommended choice) and proprietary boards.
+Pixhawk standard boards and proprietary boards are shown below (discontinued boards aren't listed).
+
+For the most up to date information, please visit [PX4 user Guide > Autopilot Hardware](https://docs.px4.io/main/en/flight_controller/).
 
 ### Septentrio Receivers
 

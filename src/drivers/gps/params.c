@@ -87,6 +87,7 @@ PARAM_DEFINE_INT32(GPS_SAT_INFO, 0);
  * Select the u-blox configuration setup. Most setups will use the default, including RTK and
  * dual GPS without heading.
  *
+ * If rover has RTCM corrections from a static base (or other static correction source) coming in on UART2, then select Mode 5.
  * The Heading mode requires 2 F9P devices to be attached. The main GPS will act as rover and output
  * heading information, whereas the secondary will act as moving base.
  * Modes 1 and 2 require each F9P UART1 to be connected to the Autopilot. In addition, UART2 on the
@@ -101,6 +102,7 @@ PARAM_DEFINE_INT32(GPS_SAT_INFO, 0);
  * @value 2 Moving Base (UART1 Connected To Autopilot, UART2 Connected To Rover)
  * @value 3 Heading (Rover With Moving Base UART1 Connected to Autopilot Or Can Node At 921600)
  * @value 4 Moving Base (Moving Base UART1 Connected to Autopilot Or Can Node At 921600)
+ * @value 5 Rover with Static Base on UART2 (similar to Default, except coming in on UART2)
  *
  * @reboot_required true
  * @group GPS
@@ -109,14 +111,52 @@ PARAM_DEFINE_INT32(GPS_UBX_MODE, 0);
 
 
 /**
+ * u-blox F9P UART2 Baudrate
+ *
+ * Select a baudrate for the F9P's UART2 port.
+ * In GPS_UBX_MODE 1, 2, and 3, the F9P's UART2 port is configured to send/receive RTCM corrections.
+ * Set this to 57600 if you want to attach a telemetry radio on UART2.
+ *
+ * @min 0
+ * @unit B/s
+ *
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_BAUD2, 230400);
+
+/**
+ * u-blox protocol configuration for interfaces
+ *
+ * @min 0
+ * @max 32
+ * @bit 0 Enable I2C input protocol UBX
+ * @bit 1 Enable I2C input protocol NMEA
+ * @bit 2 Enable I2C input protocol RTCM3X
+ * @bit 3 Enable I2C output protocol UBX
+ * @bit 4 Enable I2C output protocol NMEA
+ * @bit 5 Enable I2C output protocol RTCM3X
+ *
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_CFG_INTF, 0);
+
+/**
  * Heading/Yaw offset for dual antenna GPS
  *
  * Heading offset angle for dual antenna GPS setups that support heading estimation.
  *
- * Set this to 0 if the antennas are parallel to the forward-facing direction of the vehicle and the rover antenna is in
- * front. The offset angle increases clockwise.
+ * Set this to 0 if the antennas are parallel to the forward-facing direction
+ * of the vehicle and the rover (or Unicore primary) antenna is in front.
  *
- * Set this to 90 if the rover antenna is placed on the right side of the vehicle and the moving base antenna is on the left side.
+ * The offset angle increases clockwise.
+ *
+ * Set this to 90 if the rover (or Unicore primary) antenna is placed on the
+ * right side of the vehicle and the moving base antenna is on the left side.
+ *
+ * (Note: the Unicore primary antenna is the one connected on the right as seen
+ *        from the top).
  *
  * @min 0
  * @max 360
@@ -177,7 +217,7 @@ PARAM_DEFINE_INT32(GPS_1_PROTOCOL, 1);
  * Auto-detection will probe all protocols, and thus is a bit slower.
  *
  * @min 0
- * @max 5
+ * @max 6
  * @value 0 Auto detect
  * @value 1 u-blox
  * @value 2 MTK

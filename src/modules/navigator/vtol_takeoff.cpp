@@ -62,7 +62,7 @@ VtolTakeoff::on_activation()
 void
 VtolTakeoff::on_active()
 {
-	if (is_mission_item_reached()) {
+	if (is_mission_item_reached_or_completed()) {
 		reset_mission_item_reached();
 
 		switch	(_takeoff_state) {
@@ -117,8 +117,9 @@ VtolTakeoff::on_active()
 				// we need the vehicle to loiter indefinitely but also we want this mission item to be reached as soon
 				// as the loiter is established. therefore, set a small loiter time so that the mission item will be reached quickly,
 				// however it will just continue loitering as there is no next mission item
-				_mission_item.time_inside = 1;
+				_mission_item.time_inside = 1.f;
 				_mission_item.loiter_radius = _navigator->get_loiter_radius();
+				_mission_item.acceptance_radius  = _navigator->get_acceptance_radius();
 				_mission_item.altitude = _navigator->get_home_position()->alt + _param_loiter_alt.get();
 
 				mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
@@ -142,9 +143,17 @@ VtolTakeoff::on_active()
 
 		case vtol_takeoff_state::CLIMB: {
 
-				// the VTOL takeoff is done, proceed loitering and upate the navigation state to LOITER
+				// reset any potentially valid reposition triplet which was not handled
+				// we do this to avoid random loiter locations after switching to loiter mode after this
+				position_setpoint_triplet_s *reposition_triplet = _navigator->get_reposition_triplet();
+				_navigator->reset_position_setpoint(reposition_triplet->previous);
+				_navigator->reset_position_setpoint(reposition_triplet->current);
+				_navigator->reset_position_setpoint(reposition_triplet->next);
+
+				// the VTOL takeoff is done
 				_navigator->get_mission_result()->finished = true;
 				_navigator->set_mission_result_updated();
+				_navigator->mode_completed(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF);
 
 				break;
 			}

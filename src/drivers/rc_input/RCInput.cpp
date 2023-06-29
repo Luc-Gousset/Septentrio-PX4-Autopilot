@@ -48,12 +48,6 @@ RCInput::RCInput(const char *device) :
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")),
 	_publish_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": publish interval"))
 {
-	// rc input, published to ORB
-	_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
-
-	// initialize it as RC lost
-	_rc_in.rc_lost = true;
-
 	// initialize raw_rc values and count
 	for (unsigned i = 0; i < input_rc_s::RC_INPUT_MAX_CHANNELS; i++) {
 		_raw_rc_values[i] = UINT16_MAX;
@@ -116,6 +110,8 @@ RCInput::init()
 	px4_arch_unconfiggpio(GPIO_PPM_IN);
 #endif // GPIO_PPM_IN
 
+	rc_io_invert(false);
+
 	return 0;
 }
 
@@ -131,6 +127,15 @@ RCInput::task_spawn(int argc, char *argv[])
 #if defined(RC_SERIAL_PORT)
 	device_name = RC_SERIAL_PORT;
 #endif // RC_SERIAL_PORT
+
+#if defined(RC_SERIAL_PORT) && defined(PX4IO_SERIAL_DEVICE)
+
+	// if RC_SERIAL_PORT == PX4IO_SERIAL_DEVICE then don't use it by default if the px4io is running
+	if ((strcmp(RC_SERIAL_PORT, PX4IO_SERIAL_DEVICE) == 0) && (access("/dev/px4io", R_OK) == 0)) {
+		device_name = nullptr;
+	}
+
+#endif // RC_SERIAL_PORT && PX4IO_SERIAL_DEVICE
 
 	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
@@ -271,8 +276,6 @@ void RCInput::set_rc_scan_state(RC_SCAN newState)
 
 	_rc_scan_begin = 0;
 	_rc_scan_locked = false;
-
-	_report_lock = true;
 }
 
 void RCInput::rc_io_invert(bool invert)
@@ -340,7 +343,7 @@ void RCInput::Run()
 			// Check for a pairing command
 			if (vcmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) {
 
-				uint8_t cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+				uint8_t cmd_ret = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 #if defined(SPEKTRUM_POWER)
 
 				if (!_rc_scan_locked && !_armed) {
@@ -362,11 +365,11 @@ void RCInput::Run()
 
 						bind_spektrum(dsm_bind_pulses);
 
-						cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+						cmd_ret = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 					}
 
 				} else {
-					cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+					cmd_ret = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 				}
 
 #endif // SPEKTRUM_POWER
@@ -417,8 +420,8 @@ void RCInput::Run()
 		bool rc_updated = false;
 
 		// This block scans for a supported serial RC input and locks onto the first one found
-		// Scan for 300 msec, then switch protocol
-		constexpr hrt_abstime rc_scan_max = 300_ms;
+		// Scan for 500 msec, then switch protocol
+		constexpr hrt_abstime rc_scan_max = 500_ms;
 
 		unsigned frame_drops = 0;
 
@@ -433,6 +436,8 @@ void RCInput::Run()
 		if (newBytes > 0) {
 			_bytes_rx += newBytes;
 		}
+
+		const bool rc_scan_locked = _rc_scan_locked;
 
 		switch (_rc_scan_state) {
 		case RC_SCAN_NONE:
@@ -748,21 +753,27 @@ void RCInput::Run()
 		if (rc_updated) {
 			perf_count(_publish_interval_perf);
 
+			_rc_in.link_quality = -1;
+			_rc_in.rssi_dbm = NAN;
+
 			_to_input_rc.publish(_rc_in);
 
 		} else if (!rc_updated && !_armed && (hrt_elapsed_time(&_rc_in.timestamp_last_signal) > 1_s)) {
 			_rc_scan_locked = false;
 		}
 
-		if (_report_lock && _rc_scan_locked) {
-			_report_lock = false;
+		if (!rc_scan_locked && _rc_scan_locked) {
 			PX4_INFO("RC scan: %s RC input locked", RC_SCAN_STRING[_rc_scan_state]);
+		}
 
-			if (!_armed && (_param_rc_input_proto.get() < 0)) {
-				// RC_INPUT_PROTO auto => locked selection
-				_param_rc_input_proto.set(_rc_scan_state);
-				_param_rc_input_proto.commit();
-			}
+		// set RC_INPUT_PROTO if RC successfully locked for > 3 seconds
+		if (!_armed && rc_updated && _rc_scan_locked
+		    && ((_rc_scan_begin != 0) && hrt_elapsed_time(&_rc_scan_begin) > 3_s)
+		    && (_param_rc_input_proto.get() < 0)
+		   ) {
+			// RC_INPUT_PROTO auto => locked selection
+			_param_rc_input_proto.set(_rc_scan_state);
+			_param_rc_input_proto.commit();
 		}
 	}
 }
